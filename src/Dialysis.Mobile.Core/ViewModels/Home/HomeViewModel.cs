@@ -155,7 +155,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             }
             catch (Exception e)
             {
-                logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {connectedDevice.Id}), error: {e.Message}");
+                logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {ConnectedDevice.Id}), error: {e.Message}");
             }
             //TODO: do something with data i guess
         }
