@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Acr.UserDialogs;
 using Android.App;
 using Android.OS;
 using MvvmCross.Forms.Platforms.Android.Views;
@@ -19,5 +20,12 @@ namespace Dialysis.Mobile.Droid.Views
             StartActivity(typeof(MainActivity));
             return Task.CompletedTask;
         }
+
+        protected override void OnCreate(Bundle bundle)
+        {
+            base.OnCreate(bundle);
+            UserDialogs.Init(this);
+        }
+
     }
 }

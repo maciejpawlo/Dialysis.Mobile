@@ -11,6 +11,7 @@ using Android.Views;
 using Android.Widget;
 using MvvmCross.Forms.Platforms.Android.Views;
 using Dialysis.Mobile.Core.ViewModels.Main;
+using Acr.UserDialogs;
 
 namespace Dialysis.Mobile.Droid
 {
@@ -22,8 +23,7 @@ namespace Dialysis.Mobile.Droid
         {
             TabLayoutResource = Resource.Layout.Tabbar;
             ToolbarResource = Resource.Layout.Toolbar;
-
-           base.OnCreate(bundle);
+            base.OnCreate(bundle);
         }
     }
 }

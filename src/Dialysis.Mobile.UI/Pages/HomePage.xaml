@@ -10,9 +10,69 @@
                       Title="Main page">
     <ContentPage.Content>
         <StackLayout>
-            <Label Text="Welcome!!&#10;App scaffolded with MvxScaffolding"
+            <Label Text="{Binding DeviceName}"
                 VerticalOptions="CenterAndExpand" 
-                HorizontalOptions="CenterAndExpand" />
+                HorizontalOptions="CenterAndExpand"
+                FontSize="Title"
+                FontAttributes="Bold" 
+                IsVisible="{Binding IsDeviceConnected}"/>
+
+            <CollectionView ItemsSource="{Binding DeviceList}" IsVisible="{Binding IsDeviceListVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame CornerRadius="20" HasShadow="True" BackgroundColor="White" Padding="10" BorderColor="LightGray">
+                            <Grid Padding="10" HorizontalOptions="FillAndExpand">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Label Text="ID: " Grid.Column="0" Grid.Row="0"/>
+                                <Label Text="{Binding Id}" Grid.Column="1" Grid.Row="0"/>
+                                <Label Text="Name: " Grid.Column="0" Grid.Row="1"/>
+                                <Label Text="{Binding Name}" Grid.Column="1" Grid.Row="1"/>
+                                <Button Text="Connect" Grid.ColumnSpan="2" Grid.Row="2" 
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type viewModels:HomeViewModel}}, Path=ConnectToDeviceCommand}" 
+                                        CommandParameter="{Binding Id}"/>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Text="Start Examination"
+                Command="{Binding StartExamiantionCommand}"
+                VerticalOptions="CenterAndExpand" 
+                HorizontalOptions="CenterAndExpand"
+                FontSize="Large"
+                FontAttributes="Bold"    
+                HeightRequest="80"
+                IsVisible="{Binding IsDeviceConnected}"/>
+            
+            <Button Text="Scan for devices"
+                Command="{Binding ScanForDevicesCommand}"
+                VerticalOptions="CenterAndExpand" 
+                HorizontalOptions="CenterAndExpand"
+                FontSize="Large"
+                FontAttributes="Bold"
+                HeightRequest="80"
+                IsEnabled="{Binding IsScanButtonEnabled}"/>
+
+            <Button Text="Disconnect"
+                Command="{Binding DisconnectDeviceCommand}"
+                VerticalOptions="CenterAndExpand" 
+                HorizontalOptions="CenterAndExpand"
+                FontSize="Large"
+                FontAttributes="Bold"
+                HeightRequest="80" 
+                IsVisible="{Binding IsDeviceConnected}"/>
+
+
         </StackLayout>
     </ContentPage.Content>
 </views:MvxContentPage>
