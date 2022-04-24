@@ -121,17 +121,16 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
 
         private async Task DisconnectDeviceAsync()
         {
-            var connectedDevice = adapter.ConnectedDevices.FirstOrDefault(x => x.Name == "ESP32_BLE");
-            logger.LogInformation($"Trying to disconnect device (ID: {connectedDevice.Id})");
+            logger.LogInformation($"Trying to disconnect device (ID: {ConnectedDevice.Id})");
             try
             {
-                await adapter.DisconnectDeviceAsync(connectedDevice);
+                await adapter.DisconnectDeviceAsync(ConnectedDevice);
                 ConnectedDevice = null;
-                logger.LogInformation($"Successfully disconnected device (ID: {connectedDevice.Id})");
+                logger.LogInformation($"Successfully disconnected device (ID: {ConnectedDevice.Id})");
             }
             catch (Exception e)
             {
-                logger.LogError($"Could not disconnect device (ID: {connectedDevice.Id}) due to unknown error: {e.Message}");
+                logger.LogError($"Could not disconnect device (ID: {ConnectedDevice.Id}) due to unknown error: {e.Message}");
             }
         }
 
@@ -141,8 +140,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             //open popup with form regarding examination
             //send data to API
 
-            var connectedDevice = adapter.ConnectedDevices.FirstOrDefault(x => x.Name == "ESP32_BLE");
-            var services = await connectedDevice.GetServicesAsync();
+            var services = await ConnectedDevice.GetServicesAsync();
             var primarySerivce = services.FirstOrDefault(x => x.Name == "Unknown Service");
             var characteristic = (await primarySerivce.GetCharacteristicsAsync()).FirstOrDefault();
 
