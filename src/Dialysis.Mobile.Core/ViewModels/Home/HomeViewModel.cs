@@ -7,10 +7,12 @@ using Plugin.BLE.Abstractions.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Xamarin.Essentials;
 
 namespace Dialysis.Mobile.Core.ViewModels.Home
 {
@@ -83,7 +85,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 logger.LogInformation("Started scanning for BLE devices");
                 IsScanButtonEnabled = false;
                 DeviceList.Clear();
-                dialogsService.ShowLoading("Scanning for devices...");
+                dialogsService.ShowLoading("Scanning devices...");
                 await adapter.StartScanningForDevicesAsync();
                 dialogsService.HideLoading();
                 logger.LogInformation("Finished scanning for BLE devices, found {count} devices", DeviceList.Count);
@@ -94,8 +96,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             }
             else
             {
-                //TODO: Handle prompt for turning on BT
-
+                await dialogsService.AlertAsync("Bluetooth connection is required. Turn on Bluetooth in settings.", "No Bluetooth connection", "OK");
             }
         }
 
@@ -125,8 +126,8 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             try
             {
                 await adapter.DisconnectDeviceAsync(ConnectedDevice);
-                ConnectedDevice = null;
                 logger.LogInformation($"Successfully disconnected device (ID: {ConnectedDevice.Id})");
+                ConnectedDevice = null;
             }
             catch (Exception e)
             {
@@ -136,28 +137,52 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
 
         private async Task StartExaminationAsync()
         {
-            //read data
+            //TODOs:
+            //read data - DONE
             //open popup with form regarding examination
             //send data to API
+            //do something with data 
 
             var services = await ConnectedDevice.GetServicesAsync();
             var primarySerivce = services.FirstOrDefault(x => x.Name == "Unknown Service");
             var characteristic = (await primarySerivce.GetCharacteristicsAsync()).FirstOrDefault();
-
-            //TODO: Add timeout to appsettings 
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(5000);
-
-            byte[] data;
+            var textData = new List<string>();
             try
             {
-                data = await characteristic.ReadAsync(cts.Token);
+                dialogsService.ShowLoading("Reading data from sensor...");
+
+                logger.LogInformation($"Starting reading data from device (ID: {ConnectedDevice.Id})");
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
+                await RepeatActionEvery(async () => {
+                    var data = await characteristic.ReadAsync();
+                    var parsedData = Encoding.UTF8.GetString(data);
+                    textData.Add(parsedData);
+                }, TimeSpan.FromSeconds(1), cts.Token);
+                logger.LogInformation($"Finished reading data from device (ID: {ConnectedDevice.Id}), data: {string.Join(", ",textData)}");
+                dialogsService.HideLoading();
             }
             catch (Exception e)
             {
                 logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {ConnectedDevice.Id}), error: {e.Message}");
             }
-            //TODO: do something with data i guess
+        }
+
+        private async Task RepeatActionEvery(Action action, TimeSpan interval, CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                action();
+                Task task = Task.Delay(interval, cancellationToken);
+
+                try
+                {
+                    await task;
+                }
+                catch (TaskCanceledException)
+                {
+                    return;
+                }
+            }
         }
 
         private void OnDeviceDiscovered(object s, DeviceEventArgs a)
