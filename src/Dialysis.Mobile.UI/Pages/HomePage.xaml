@@ -10,14 +10,14 @@
                       Title="Main page">
     <ContentPage.Content>
         <StackLayout>
-            <Label Text="{Binding DeviceName}"
+            <Label Text="{Binding DeviceName}"   
                 VerticalOptions="CenterAndExpand" 
                 HorizontalOptions="CenterAndExpand"
                 FontSize="Title"
                 FontAttributes="Bold" 
                 IsVisible="{Binding IsDeviceConnected}"/>
 
-            <CollectionView ItemsSource="{Binding DeviceList}" IsVisible="{Binding IsDeviceListVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
+            <!--<CollectionView ItemsSource="{Binding DeviceList}" IsVisible="{Binding IsDeviceListVisible}" VerticalOptions="CenterAndExpand" HorizontalOptions="CenterAndExpand">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Frame CornerRadius="20" HasShadow="True" BackgroundColor="White" Padding="10" BorderColor="LightGray">
@@ -43,7 +43,7 @@
                         </Frame>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
-            </CollectionView>
+            </CollectionView>-->
 
             <Button Text="Start Examination"
                 Command="{Binding StartExamiantionCommand}"
@@ -54,14 +54,14 @@
                 HeightRequest="80"
                 IsVisible="{Binding IsDeviceConnected}"/>
             
-            <Button Text="Scan for devices"
-                Command="{Binding ScanForDevicesCommand}"
+            <Button Text="Scan devices"
+                Command="{Binding ScanAndConnectToDeviceCommand}"
                 VerticalOptions="CenterAndExpand" 
                 HorizontalOptions="CenterAndExpand"
                 FontSize="Large"
                 FontAttributes="Bold"
                 HeightRequest="80"
-                IsEnabled="{Binding IsScanButtonEnabled}"/>
+                mvx:Bi.nd="IsEnabled !IsDeviceConnected"/>
 
             <Button Text="Disconnect"
                 Command="{Binding DisconnectDeviceCommand}"

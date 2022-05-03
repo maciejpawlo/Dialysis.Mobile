@@ -1,6 +1,10 @@
 using Acr.UserDialogs;
+using Dialysis.Mobile.Core.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MvvmCross.Commands;
+using MvvmCross.Navigation;
+using MvvmCross.ViewModels;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Exceptions;
@@ -22,6 +26,8 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         private readonly IBluetoothLE ble;
         private readonly IAdapter adapter;
         private readonly IUserDialogs dialogsService;
+        private readonly IMvxNavigationService navigationService;
+        private readonly IConfiguration configuration;
 
         #region Properties
         public ObservableCollection<IDevice> DeviceList { get; set; }
@@ -59,23 +65,85 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         #endregion
 
         #region Commands
-        public MvxAsyncCommand ScanForDevicesCommand { get; set; }
+        public MvxAsyncCommand ScanDevicesCommand { get; set; }
         public MvxAsyncCommand<Guid> ConnectToDeviceCommand { get; set; }
         public MvxAsyncCommand StartExamiantionCommand { get; set; }
         public MvxAsyncCommand DisconnectDeviceCommand { get; set; }
+        public MvxAsyncCommand ScanAndConnectToDeviceCommand { get; set; }
         #endregion
 
         public HomeViewModel(ILogger<HomeViewModel> logger,
             IBluetoothLE ble, 
             IAdapter adapter,
-            IUserDialogs dialogsService)
+            IUserDialogs dialogsService,
+            IMvxNavigationService navigationService,
+            IConfiguration configuration)
         {
             this.logger = logger;
             this.ble = ble;
             this.adapter = adapter;
             this.dialogsService = dialogsService;
+            this.navigationService = navigationService;
+            this.configuration = configuration;
             SetupCommands();
             Setup();
+        }
+
+        private async Task ScanAndConnectToDeviceAsync()
+        {
+            var result = await Permissions.CheckStatusAsync<Permissions.LocationWhenInUse>();
+            if (result != PermissionStatus.Granted)
+            {
+                logger.LogInformation("Permission for LocationWhenInUse was not granted, requesting for permission");
+                var requestResult = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
+                if (requestResult != PermissionStatus.Granted)
+                {
+                    logger.LogWarning("Permission request was denied");
+                    return;
+                }
+            }
+
+            if (!ble.IsOn)
+            {
+                logger.LogError("Could not start scanning, Bluetooth is off");
+                await dialogsService.AlertAsync("Bluetooth connection is required. Turn on Bluetooth in settings.", "No Bluetooth connection", "OK");
+                return;
+            }
+
+            logger.LogInformation("Started scanning for BLE devices");
+            IsScanButtonEnabled = false;
+            if (DeviceList.Count > 0) DeviceList.Clear();
+            dialogsService.ShowLoading("Scanning devices...");
+            await adapter.StartScanningForDevicesAsync(null, x => x.Name == configuration["DeviceName"]);
+            dialogsService.HideLoading();
+            logger.LogInformation("Finished scanning for BLE devices, found {count} devices", DeviceList.Count);
+            //IsScanButtonEnabled = true;
+
+            var deviceToConnect = DeviceList.FirstOrDefault();
+            if (deviceToConnect is null)
+            {
+                logger.LogError("Could not connect to device, because no device was found");
+                await dialogsService.AlertAsync("Could not connect to device, because no device was found.", "No device found", "OK");
+                return;
+            }
+
+            try
+            {
+                logger.LogInformation($"Trying to connect to device (ID: {deviceToConnect.Id})");
+                var connectedDevice = await adapter.ConnectToKnownDeviceAsync(deviceToConnect.Id);
+                logger.LogInformation($"Successfully connected to device (ID: {deviceToConnect.Id})");
+                IsDeviceListVisible = false;
+                ConnectedDevice = connectedDevice;
+                dialogsService.Toast($"Connected to {connectedDevice.Name}");
+            }
+            catch (DeviceConnectionException e)
+            {
+                logger.LogError($"Could not connect to device (ID: {deviceToConnect.Id})");
+            }
+            catch (Exception e)
+            {
+                logger.LogError($"Unknown error occurred while connecting to device (ID: {deviceToConnect.Id}), error: {e.Message}");
+            }
         }
 
         private async Task ScanForDevicesAsync()
@@ -86,11 +154,12 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 IsScanButtonEnabled = false;
                 DeviceList.Clear();
                 dialogsService.ShowLoading("Scanning devices...");
-                await adapter.StartScanningForDevicesAsync();
+                await adapter.StartScanningForDevicesAsync(null, x => x.Name == configuration["DeviceName"]);
                 dialogsService.HideLoading();
                 logger.LogInformation("Finished scanning for BLE devices, found {count} devices", DeviceList.Count);
                 IsScanButtonEnabled = true;
 
+                //TODO: delete device list
                 if (DeviceList.Count > 0)
                     IsDeviceListVisible = true;
             }
@@ -128,6 +197,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 await adapter.DisconnectDeviceAsync(ConnectedDevice);
                 logger.LogInformation($"Successfully disconnected device (ID: {ConnectedDevice.Id})");
                 ConnectedDevice = null;
+                IsScanButtonEnabled = true;
             }
             catch (Exception e)
             {
@@ -139,14 +209,13 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         {
             //TODOs:
             //read data - DONE
-            //open popup with form regarding examination
+            //open popup with form regarding examination - DONE
             //send data to API
-            //do something with data 
 
             var services = await ConnectedDevice.GetServicesAsync();
-            var primarySerivce = services.FirstOrDefault(x => x.Name == "Unknown Service");
+            var primarySerivce = services.FirstOrDefault(x => x.Name == configuration["ServiceName"]);
             var characteristic = (await primarySerivce.GetCharacteristicsAsync()).FirstOrDefault();
-            var textData = new List<string>();
+            var sensorData = new List<double>();
             try
             {
                 dialogsService.ShowLoading("Reading data from sensor...");
@@ -156,15 +225,25 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 await RepeatActionEvery(async () => {
                     var data = await characteristic.ReadAsync();
                     var parsedData = Encoding.UTF8.GetString(data);
-                    textData.Add(parsedData);
+                    sensorData.Add(double.Parse(parsedData));
                 }, TimeSpan.FromSeconds(1), cts.Token);
-                logger.LogInformation($"Finished reading data from device (ID: {ConnectedDevice.Id}), data: {string.Join(", ",textData)}");
+                logger.LogInformation($"Finished reading data from device (ID: {ConnectedDevice.Id}), data: {string.Join(", ",sensorData)}");
                 dialogsService.HideLoading();
             }
             catch (Exception e)
             {
                 logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {ConnectedDevice.Id}), error: {e.Message}");
             }
+
+            var examinationToSend = new Examination
+            {
+                CreatedAt = DateTime.Now,
+                PatientID = 1, //TODO: To change when auth will be added
+                Turbidity = sensorData.Average(),
+            };
+
+           var examination = await navigationService.Navigate<ExaminationResultViewModel, Examination, Examination>(examinationToSend);
+           //TODO: Send data to API or save to local db
         }
 
         private async Task RepeatActionEvery(Action action, TimeSpan interval, CancellationToken cancellationToken)
@@ -193,10 +272,11 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
 
         private void SetupCommands()
         {
-            ScanForDevicesCommand = new MvxAsyncCommand(ScanForDevicesAsync);
+            ScanDevicesCommand = new MvxAsyncCommand(ScanForDevicesAsync);
             ConnectToDeviceCommand = new MvxAsyncCommand<Guid>((id) => ConnectToDeviceAsync(id));
             StartExamiantionCommand = new MvxAsyncCommand(StartExaminationAsync);
             DisconnectDeviceCommand = new MvxAsyncCommand(DisconnectDeviceAsync);
+            ScanAndConnectToDeviceCommand = new MvxAsyncCommand(ScanAndConnectToDeviceAsync);
         }
 
         private void Setup()
