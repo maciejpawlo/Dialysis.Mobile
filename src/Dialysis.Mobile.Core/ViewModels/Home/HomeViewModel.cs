@@ -1,4 +1,6 @@
 using Acr.UserDialogs;
+using Dialysis.Mobile.Core.ApiClient;
+using Dialysis.Mobile.Core.ApiClient.Responses;
 using Dialysis.Mobile.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -8,6 +10,7 @@ using MvvmCross.ViewModels;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Exceptions;
+using Refit;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,7 +31,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         private readonly IUserDialogs dialogsService;
         private readonly IMvxNavigationService navigationService;
         private readonly IConfiguration configuration;
-
+        private readonly IDialysisAPI dialysisAPI;
         #region Properties
         public ObservableCollection<IDevice> DeviceList { get; set; }
 
@@ -73,11 +76,11 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         #endregion
 
         public HomeViewModel(ILogger<HomeViewModel> logger,
-            IBluetoothLE ble, 
+            IBluetoothLE ble,
             IAdapter adapter,
             IUserDialogs dialogsService,
             IMvxNavigationService navigationService,
-            IConfiguration configuration)
+            IConfiguration configuration, IDialysisAPI dialysisAPI)
         {
             this.logger = logger;
             this.ble = ble;
@@ -87,6 +90,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             this.configuration = configuration;
             SetupCommands();
             Setup();
+            this.dialysisAPI = dialysisAPI;
         }
 
         private async Task ScanAndConnectToDeviceAsync()
@@ -210,7 +214,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             //TODOs:
             //read data - DONE
             //open popup with form regarding examination - DONE
-            //send data to API
+            //send data to API - IN PROGRESS
 
             var services = await ConnectedDevice.GetServicesAsync();
             var primarySerivce = services.FirstOrDefault(x => x.Name == configuration["ServiceName"]);
@@ -242,8 +246,15 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 Turbidity = sensorData.Average(),
             };
 
-           var examination = await navigationService.Navigate<ExaminationResultViewModel, Examination, Examination>(examinationToSend);
-           //TODO: Send data to API or save to local db
+            var examination = await navigationService.Navigate<ExaminationResultViewModel, Examination, Examination>(examinationToSend);
+
+            var examinationDTO = new ExaminationDTO
+            {
+                PatientID = examination.PatientID,
+                Turbidity = examination.Turbidity,
+                Weight = examination.Weight,
+            };
+            //TODO: Add examination handler
         }
 
         private async Task RepeatActionEvery(Action action, TimeSpan interval, CancellationToken cancellationToken)

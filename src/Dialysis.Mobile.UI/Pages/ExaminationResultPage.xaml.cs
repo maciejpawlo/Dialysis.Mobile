@@ -19,5 +19,7 @@ namespace Dialysis.Mobile.UI.Pages
         {
             InitializeComponent();
         }
+
+        //TODO: disable back button OR display some kind of alert
     }
 }
