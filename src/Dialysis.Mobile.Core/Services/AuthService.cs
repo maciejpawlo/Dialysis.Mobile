@@ -64,5 +64,16 @@ namespace Dialysis.Mobile.Core.Services
             _ = SecureStorage.Remove("refresh_token");
             return true;
         }
+
+        public async Task<bool> IsAuthenticated()
+        {
+            var jwt = await SecureStorage.GetAsync("jwt_token");
+            var refresh = SecureStorage.GetAsync("refresh_token");
+            if (jwt != null && refresh != null)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }

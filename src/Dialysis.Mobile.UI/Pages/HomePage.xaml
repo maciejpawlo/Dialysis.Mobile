@@ -8,6 +8,9 @@
     x:Class="Dialysis.Mobile.UI.Pages.HomePage"
     xmlns:viewModels="clr-namespace:Dialysis.Mobile.Core.ViewModels.Home;assembly=Dialysis.Mobile.Core"
                       Title="Main page">
+    <ContentPage.ToolbarItems >
+        <ToolbarItem Text="Log out" Priority="0" Order="Primary" Command="{Binding LogoutCommand}"/>
+    </ContentPage.ToolbarItems>
     <ContentPage.Content>
         <StackLayout>
             <Label Text="{Binding DeviceName}"   

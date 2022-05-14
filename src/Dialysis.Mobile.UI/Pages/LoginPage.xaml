@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<views:MvxContentPage x:TypeArguments="viewModels:LoginViewModel"
+             xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:views="clr-namespace:MvvmCross.Forms.Views;assembly=MvvmCross.Forms"
+             xmlns:mvx="clr-namespace:MvvmCross.Forms.Bindings;assembly=MvvmCross.Forms"
+             xmlns:local="clr-namespace:Dialysis.Mobile.UI.Pages"
+             x:Class="Dialysis.Mobile.UI.Pages.LoginPage"
+             xmlns:viewModels="clr-namespace:Dialysis.Mobile.Core.ViewModels.Home;assembly=Dialysis.Mobile.Core">
+    <ContentPage.Content>
+        <StackLayout>
+            <Label Text="Login to Dialysis.Mobile!"
+                VerticalOptions="CenterAndExpand" 
+                HorizontalOptions="CenterAndExpand" 
+                FontSize="Title" FontAttributes="Bold"/>
+
+            <Entry Placeholder="Login"
+                   VerticalOptions="CenterAndExpand" 
+                   HorizontalOptions="CenterAndExpand" 
+                   mvx:Bi.nd="Text Login" WidthRequest="350"/>
+
+            <Entry Placeholder="Password"
+                   IsPassword="True" 
+                   VerticalOptions="CenterAndExpand" 
+                   HorizontalOptions="CenterAndExpand" 
+                   mvx:Bi.nd="Text Password" WidthRequest="350"/>
+
+            <Button Text="Log in"  VerticalOptions="CenterAndExpand" 
+                HorizontalOptions="CenterAndExpand" Command="{Binding LoginCommand}" WidthRequest="350"/>
+        </StackLayout>
+    </ContentPage.Content>
+</views:MvxContentPage>

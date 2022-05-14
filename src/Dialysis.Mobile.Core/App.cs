@@ -17,6 +17,8 @@ using Polly.Extensions.Http;
 using Polly.Retry;
 using Polly.Timeout;
 using Dialysis.Mobile.Core.Services;
+using Xamarin.Essentials;
+using Dialysis.Mobile.Core.Utils;
 
 namespace Dialysis.Mobile.Core
 {
@@ -24,10 +26,10 @@ namespace Dialysis.Mobile.Core
     {
         public override void Initialize()
         {
-            CreatableTypes()
-                .EndingWith("Service")
-                .AsInterfaces()
-                .RegisterAsLazySingleton();
+            //CreatableTypes()
+            //    .EndingWith("Service")
+            //    .AsInterfaces()
+            //    .RegisterAsLazySingleton();
 #if RELEASE
             var path = "Dialysis.Mobile.Core.Configuration.appsettings.release.json";
 #else
@@ -42,10 +44,10 @@ namespace Dialysis.Mobile.Core
             Mvx.IoCProvider.RegisterSingleton<IBluetoothLE>(CrossBluetoothLE.Current);
             Mvx.IoCProvider.RegisterSingleton<IAdapter>(CrossBluetoothLE.Current.Adapter);
             Mvx.IoCProvider.RegisterSingleton<IUserDialogs>(UserDialogs.Instance);
-
+            Mvx.IoCProvider.RegisterType<IAuthService, AuthService>();
             InitializeServiceCollection();
-
-            RegisterAppStart<HomeViewModel>();
+            //RegisterAppStart<HomeViewModel>();
+            RegisterCustomAppStart<AppStart>();
         }
 
         private static void InitializeServiceCollection()
@@ -61,7 +63,7 @@ namespace Dialysis.Mobile.Core
         private static void ConfigureServices(IServiceCollection serviceCollection)
         {
             var apiUrl = Mvx.IoCProvider.Resolve<IConfiguration>()["ApiUrl"];
-            var authService = Mvx.IoCProvider.Resolve<IAuthService>();
+            // authService = Mvx.IoCProvider.Resolve<IAuthService>();
             serviceCollection.AddRefitClient<IDialysisAPI>()
                 .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiUrl))
                 .AddPolicyHandler((provider, request) => 
@@ -69,7 +71,7 @@ namespace Dialysis.Mobile.Core
                     return Policy.HandleResult<System.Net.Http.HttpResponseMessage>(r => r.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                         .RetryAsync(1, async (response, retryCount, context) =>
                         {
-                            await authService.RefreshToken();
+                            //await authService.RefreshToken();
                         });
                 });
         }

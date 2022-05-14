@@ -2,6 +2,7 @@ using Acr.UserDialogs;
 using Dialysis.Mobile.Core.ApiClient;
 using Dialysis.Mobile.Core.ApiClient.Responses;
 using Dialysis.Mobile.Core.Models;
+using Dialysis.Mobile.Core.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MvvmCross.Commands;
@@ -31,6 +32,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         private readonly IUserDialogs dialogsService;
         private readonly IMvxNavigationService navigationService;
         private readonly IConfiguration configuration;
+        private readonly IAuthService authService;
         private readonly IDialysisAPI dialysisAPI;
         #region Properties
         public ObservableCollection<IDevice> DeviceList { get; set; }
@@ -73,6 +75,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         public MvxAsyncCommand StartExamiantionCommand { get; set; }
         public MvxAsyncCommand DisconnectDeviceCommand { get; set; }
         public MvxAsyncCommand ScanAndConnectToDeviceCommand { get; set; }
+        public MvxAsyncCommand LogoutCommand { get; set; }
         #endregion
 
         public HomeViewModel(ILogger<HomeViewModel> logger,
@@ -80,7 +83,9 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             IAdapter adapter,
             IUserDialogs dialogsService,
             IMvxNavigationService navigationService,
-            IConfiguration configuration, IDialysisAPI dialysisAPI)
+            IConfiguration configuration,
+            IAuthService authService,
+            IDialysisAPI dialysisAPI)
         {
             this.logger = logger;
             this.ble = ble;
@@ -88,9 +93,10 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             this.dialogsService = dialogsService;
             this.navigationService = navigationService;
             this.configuration = configuration;
+            this.authService = authService;
+            this.dialysisAPI = dialysisAPI;
             SetupCommands();
             Setup();
-            this.dialysisAPI = dialysisAPI;
         }
 
         private async Task ScanAndConnectToDeviceAsync()
@@ -254,7 +260,9 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 Turbidity = examination.Turbidity,
                 Weight = examination.Weight,
             };
-            //TODO: Add examination handler
+
+            var token = await SecureStorage.GetAsync("jwt_token");
+            var result = await dialysisAPI.CreateExaminations(token, examinationDTO);
         }
 
         private async Task RepeatActionEvery(Action action, TimeSpan interval, CancellationToken cancellationToken)
@@ -275,6 +283,12 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             }
         }
 
+        private async Task Logout()
+        {
+            await authService.Logout();
+            await navigationService.Navigate<LoginViewModel>();
+        }
+
         private void OnDeviceDiscovered(object s, DeviceEventArgs a)
         {
             logger.LogInformation($"Discovered device, name: {a.Device.Name}, id: {a.Device.Id}");
@@ -288,6 +302,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             StartExamiantionCommand = new MvxAsyncCommand(StartExaminationAsync);
             DisconnectDeviceCommand = new MvxAsyncCommand(DisconnectDeviceAsync);
             ScanAndConnectToDeviceCommand = new MvxAsyncCommand(ScanAndConnectToDeviceAsync);
+            LogoutCommand = new MvxAsyncCommand(Logout);
         }
 
         private void Setup()

@@ -12,7 +12,8 @@ using Xamarin.Forms.Xaml;
 namespace Dialysis.Mobile.UI.Pages
 {
     [XamlCompilation(XamlCompilationOptions.Compile)]
-    [MvxContentPagePresentation(WrapInNavigationPage = true)]
+    //[MvxContentPagePresentation(WrapInNavigationPage = true)]
+    [MvxContentPagePresentation(NoHistory = true)]
     public partial class HomePage : MvxContentPage<HomeViewModel>
     {
         public HomePage()

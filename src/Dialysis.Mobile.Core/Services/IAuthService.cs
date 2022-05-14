@@ -7,5 +7,6 @@ namespace Dialysis.Mobile.Core.Services
         Task<bool> Authencticate(string username, string password);
         Task<bool> Logout();
         Task<bool> RefreshToken();
+        Task<bool> IsAuthenticated();
     }
 }
