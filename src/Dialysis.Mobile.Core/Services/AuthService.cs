@@ -45,7 +45,7 @@ namespace Dialysis.Mobile.Core.Services
                 return false;
             }
 
-            var refreshTokenResponse = await dialysisAPI.RefreshToken(new RefreshTokenRequest { RefreshToken = refreshToken });
+            var refreshTokenResponse = await dialysisAPI.RefreshToken(new RefreshTokenRequest { RefreshToken = refreshToken }).ConfigureAwait(false);
             if (refreshTokenResponse.IsSuccessStatusCode)
             {
                 await SecureStorage.SetAsync("jwt_token", refreshTokenResponse.Content.AccessToken);

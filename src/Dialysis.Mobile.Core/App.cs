@@ -45,8 +45,9 @@ namespace Dialysis.Mobile.Core
             Mvx.IoCProvider.RegisterSingleton<IAdapter>(CrossBluetoothLE.Current.Adapter);
             Mvx.IoCProvider.RegisterSingleton<IUserDialogs>(UserDialogs.Instance);
             Mvx.IoCProvider.RegisterType<IAuthService, AuthService>();
+            Mvx.IoCProvider.RegisterType<IExaminationService, ExaminationService>();
             InitializeServiceCollection();
-            //RegisterAppStart<HomeViewModel>();
+
             RegisterCustomAppStart<AppStart>();
         }
 
@@ -63,17 +64,8 @@ namespace Dialysis.Mobile.Core
         private static void ConfigureServices(IServiceCollection serviceCollection)
         {
             var apiUrl = Mvx.IoCProvider.Resolve<IConfiguration>()["ApiUrl"];
-            // authService = Mvx.IoCProvider.Resolve<IAuthService>();
             serviceCollection.AddRefitClient<IDialysisAPI>()
-                .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiUrl))
-                .AddPolicyHandler((provider, request) => 
-                {
-                    return Policy.HandleResult<System.Net.Http.HttpResponseMessage>(r => r.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                        .RetryAsync(1, async (response, retryCount, context) =>
-                        {
-                            //await authService.RefreshToken();
-                        });
-                });
+                .ConfigureHttpClient(c => c.BaseAddress = new Uri(apiUrl));
         }
 
         private static void MapServiceCollectionToMvx(IServiceProvider serviceProvider,

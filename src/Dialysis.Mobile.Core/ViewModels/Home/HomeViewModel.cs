@@ -34,6 +34,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         private readonly IConfiguration configuration;
         private readonly IAuthService authService;
         private readonly IDialysisAPI dialysisAPI;
+        private readonly IExaminationService examinationService;
         #region Properties
         public ObservableCollection<IDevice> DeviceList { get; set; }
 
@@ -85,7 +86,8 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             IMvxNavigationService navigationService,
             IConfiguration configuration,
             IAuthService authService,
-            IDialysisAPI dialysisAPI)
+            IDialysisAPI dialysisAPI,
+            IExaminationService examinationService)
         {
             this.logger = logger;
             this.ble = ble;
@@ -95,6 +97,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             this.configuration = configuration;
             this.authService = authService;
             this.dialysisAPI = dialysisAPI;
+            this.examinationService = examinationService;
             SetupCommands();
             Setup();
         }
@@ -261,8 +264,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
                 Weight = examination.Weight,
             };
 
-            var token = await SecureStorage.GetAsync("jwt_token");
-            var result = await dialysisAPI.CreateExaminations(token, examinationDTO);
+            var result = await examinationService.CreateExaminations(examinationDTO);
         }
 
         private async Task RepeatActionEvery(Action action, TimeSpan interval, CancellationToken cancellationToken)
