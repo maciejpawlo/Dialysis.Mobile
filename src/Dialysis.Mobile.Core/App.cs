@@ -46,6 +46,7 @@ namespace Dialysis.Mobile.Core
             Mvx.IoCProvider.RegisterSingleton<IUserDialogs>(UserDialogs.Instance);
             Mvx.IoCProvider.RegisterType<IAuthService, AuthService>();
             Mvx.IoCProvider.RegisterType<IExaminationService, ExaminationService>();
+            Mvx.IoCProvider.RegisterType<IUserService, UserService>();
             InitializeServiceCollection();
 
             RegisterCustomAppStart<AppStart>();

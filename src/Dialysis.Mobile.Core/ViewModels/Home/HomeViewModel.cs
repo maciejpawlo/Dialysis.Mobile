@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using MvvmCross.Commands;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
+using Newtonsoft.Json;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Exceptions;
@@ -35,6 +36,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
         private readonly IAuthService authService;
         private readonly IDialysisAPI dialysisAPI;
         private readonly IExaminationService examinationService;
+        private readonly IUserService userService;
         #region Properties
         public ObservableCollection<IDevice> DeviceList { get; set; }
 
@@ -87,7 +89,8 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             IConfiguration configuration,
             IAuthService authService,
             IDialysisAPI dialysisAPI,
-            IExaminationService examinationService)
+            IExaminationService examinationService,
+            IUserService userService)
         {
             this.logger = logger;
             this.ble = ble;
@@ -98,6 +101,7 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             this.authService = authService;
             this.dialysisAPI = dialysisAPI;
             this.examinationService = examinationService;
+            this.userService = userService;
             SetupCommands();
             Setup();
         }
@@ -223,36 +227,50 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             //TODOs:
             //read data - DONE
             //open popup with form regarding examination - DONE
-            //send data to API - IN PROGRESS
+            //read from at least 2 characteristics - DONE
+            //send data to API - DONE
 
             var services = await ConnectedDevice.GetServicesAsync();
             var primarySerivce = services.FirstOrDefault(x => x.Name == configuration["ServiceName"]);
-            var characteristic = (await primarySerivce.GetCharacteristicsAsync()).FirstOrDefault();
-            var sensorData = new List<double>();
+            var characteristic90 = (await primarySerivce.GetCharacteristicsAsync()).Where(x => x.Uuid == configuration["NinetyCharacteristic"]).FirstOrDefault();
+            var characteristic180 = (await primarySerivce.GetCharacteristicsAsync()).Where(x => x.Uuid == configuration["OneEightyCharecteristic"]).FirstOrDefault();
+            var sensorData90 = new List<double>();
+            var sensorData180 = new List<double>();
             try
             {
                 dialogsService.ShowLoading("Reading data from sensor...");
-
                 logger.LogInformation($"Starting reading data from device (ID: {ConnectedDevice.Id})");
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(6));
                 await RepeatActionEvery(async () => {
-                    var data = await characteristic.ReadAsync();
-                    var parsedData = Encoding.UTF8.GetString(data);
-                    sensorData.Add(double.Parse(parsedData));
+                    var data90 = await characteristic90.ReadAsync();
+                    var data180 = await characteristic180.ReadAsync();
+                    var parsedData90 = Encoding.UTF8.GetString(data90);
+                    var parsedData180 = Encoding.UTF8.GetString(data180);
+                    sensorData90.Add(double.Parse(parsedData90));
+                    sensorData180.Add(double.Parse(parsedData180));
                 }, TimeSpan.FromSeconds(1), cts.Token);
-                logger.LogInformation($"Finished reading data from device (ID: {ConnectedDevice.Id}), data: {string.Join(", ",sensorData)}");
+                logger.LogInformation($"Finished reading data from device (ID: {ConnectedDevice.Id}), data: 90: {string.Join(", ",sensorData90)}, 180: {string.Join(", ", sensorData180)}");
                 dialogsService.HideLoading();
             }
             catch (Exception e)
             {
-                logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {ConnectedDevice.Id}), error: {e.Message}");
+                logger.LogError($"Unknown error occurred while reading data from characteristic (Uuid: {characteristic90.Uuid}) service (Name: {primarySerivce.Name}), device (ID: {ConnectedDevice.Id}), error: {e.Message}");
             }
+
+            var userInfo = await SecureStorage.GetAsync("UserInfo");
+            if (userInfo == null)
+            {
+                logger.LogError("Could not get user info");
+                return;
+            }
+
+            var deserializedUserInfo = JsonConvert.DeserializeObject<GetUserInfoResponse>(userInfo);
 
             var examinationToSend = new Examination
             {
                 CreatedAt = DateTime.Now,
-                PatientID = 1, //TODO: To change when auth will be added
-                Turbidity = sensorData.Average(),
+                PatientID = deserializedUserInfo.InternalUserID,
+                Turbidity = sensorData90.Average(),
             };
 
             var examination = await navigationService.Navigate<ExaminationResultViewModel, Examination, Examination>(examinationToSend);
@@ -312,6 +330,12 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             IsScanButtonEnabled = true;
             DeviceList = new ObservableCollection<IDevice>();
             this.adapter.DeviceDiscovered += OnDeviceDiscovered;
+        }
+
+        public override async void ViewAppearing()
+        {
+            await userService.GetAndSaveUserInfo();
+            base.ViewAppearing();
         }
     }
 }

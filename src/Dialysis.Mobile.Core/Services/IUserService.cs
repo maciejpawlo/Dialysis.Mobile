@@ -8,6 +8,6 @@ namespace Dialysis.Mobile.Core.Services
 {
     public interface IUserService
     {
-
+        Task GetAndSaveUserInfo();
     }
 }

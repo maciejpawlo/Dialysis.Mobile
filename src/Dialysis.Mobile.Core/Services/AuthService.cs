@@ -68,7 +68,7 @@ namespace Dialysis.Mobile.Core.Services
         public async Task<bool> IsAuthenticated()
         {
             var jwt = await SecureStorage.GetAsync("jwt_token");
-            var refresh = SecureStorage.GetAsync("refresh_token");
+            var refresh = await SecureStorage.GetAsync("refresh_token");
             if (jwt != null && refresh != null)
             {
                 return true;

@@ -18,7 +18,7 @@ namespace Dialysis.Mobile.Core.ApiClient
         Task<IApiResponse<AuthenticateResponse>> RefreshToken([Body] RefreshTokenRequest request);
 
         [Get("/user/userinfo")]
-        Task<IApiResponse<GetPatientsResponse>> GetUserInfo([Authorize("Bearer")] string authorization);
+        Task<IApiResponse<GetUserInfoResponse>> GetUserInfo([Authorize("Bearer")] string authorization);
 
         [Post("/examinations")]
         Task<IApiResponse> CreateExaminations([Authorize("Bearer")] string authorization, [Body] ExaminationDTO examinationDTO);
