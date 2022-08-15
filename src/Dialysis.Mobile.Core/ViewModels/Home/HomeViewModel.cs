@@ -270,7 +270,8 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             {
                 CreatedAt = DateTime.Now,
                 PatientID = deserializedUserInfo.InternalUserID,
-                Turbidity = sensorData90.Average(),
+                TurbidityNTU = sensorData90.Average(),
+                TurbidityFAU = sensorData180.Average(),
             };
 
             var examination = await navigationService.Navigate<ExaminationResultViewModel, Examination, Examination>(examinationToSend);
@@ -278,8 +279,11 @@ namespace Dialysis.Mobile.Core.ViewModels.Home
             var examinationDTO = new ExaminationDTO
             {
                 PatientID = examination.PatientID,
-                Turbidity = examination.Turbidity,
+                TurbidityNTU = examination.TurbidityNTU,
+                TurbidityFAU = examination.TurbidityFAU,
                 Weight = examination.Weight,
+                SystolicPressure = examination.SystolicPressure,
+                DiastolicPressure = examination.DiastolicPressure
             };
 
             var result = await examinationService.CreateExaminations(examinationDTO);

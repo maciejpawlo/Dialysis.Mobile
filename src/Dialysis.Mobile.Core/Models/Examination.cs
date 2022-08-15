@@ -10,7 +10,8 @@ namespace Dialysis.Mobile.Core.Models
     public class Examination
     {
         public double Weight { get; set; }
-        public double Turbidity { get; set; }
+        public double TurbidityNTU { get; set; }
+        public double TurbidityFAU { get; set; }
         public int DiastolicPressure { get; set; }
         public int SystolicPressure { get; set; }
         public string ImageURL { get; set; }
